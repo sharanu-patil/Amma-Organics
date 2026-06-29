@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amma's Organic Products</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+
+<!-- ─── YOUR KEYS ─── -->
+<script>
+  const CONFIG = {
+    // 1. Firebase
+    FIREBASE_API_KEY:        "AIzaSyD5kjGyiVNzJhN59aZZwYrdrkP4p_J6S5s",
+    FIREBASE_AUTH_DOMAIN:    "ammas-organics.firebaseapp.com",
+    FIREBASE_PROJECT_ID:     "ammas-organics",
+
+    // 2. Razorpay — fill in later
+    RAZORPAY_KEY_ID:         "rzp_test_XXXXXXXXXXXX",
+
+    // 3. n8n webhook — fill in later
+    N8N_WEBHOOK_URL:         "https://your-n8n.example.com/webhook/ammas-order",
+  };
+</script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:#F5F0E8; --parchment:#EDE6D3; --sage:#4A7C59;
+  --sage-deep:#2D5238; --sage-pale:#C8DCC8; --gold:#C9A84C;
+  --bark:#7A5C3A; --charcoal:#2A2A2A; --mist:#F9F6F0; --white:#FFFFFF;
+  --red:#C0392B;
+}
+html { scroll-behavior:smooth; }
+body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--charcoal); font-size:15px; line-height:1.65; }
+
+/* NAV */
+nav {
+  position:fixed; top:0; width:100%; z-index:100;
+  background:rgba(245,240,232,0.94); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--sage-pale);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 48px; height:68px;
+}
+.nav-brand { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:600; color:var(--sage-deep); }
+.nav-brand span { color:var(--gold); }
+.nav-links { display:flex; gap:32px; list-style:none; }
+.nav-links a { font-size:0.82rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--charcoal); text-decoration:none; transition:color .2s; }
+.nav-links a:hover { color:var(--sage); }
+.nav-right { display:flex; align-items:center; gap:12px; }
+.nav-cart {
+  background:var(--sage-deep); color:white; border:none; border-radius:24px;
+  padding:8px 20px; font-family:'DM Sans',sans-serif; font-size:0.82rem;
+  display:flex; align-items:center; gap:8px; cursor:pointer; transition:background .2s;
+}
+.nav-cart:hover { background:var(--sage); }
+.cart-count { background:var(--gold); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:700; }
+.nav-user-btn {
+  background:transparent; border:1.5px solid var(--sage-pale); color:var(--sage-deep);
+  border-radius:24px; padding:7px 16px; font-family:'DM Sans',sans-serif;
+  font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .2s;
+}
+.nav-user-btn:hover { border-color:var(--sage); background:var(--sage-pale); }
+.nav-avatar { width:28px; height:28px; border-radius:50%; object-fit:cover; }
+
+/* HERO */
+.hero {
+  min-height:100vh; background:linear-gradient(160deg,var(--mist) 0%,var(--parchment) 60%,#deeade 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:120px 24px 80px; position:relative; overflow:hidden;
+}
+.hero::before {
+  content:''; position:absolute; inset:0;
+  background-image:radial-gradient(circle at 10% 20%,rgba(74,124,89,.08) 0%,transparent 50%),radial-gradient(circle at 90% 80%,rgba(201,168,76,.07) 0%,transparent 50%);
+  pointer-events:none;
+}
+.hero-eyebrow { font-family:'Dancing Script',cursive; font-size:1.2rem; color:var(--sage); margin-bottom:16px; }
+.hero-title { font-family:'Cormorant Garamond',serif; font-size:clamp(3.2rem,8vw,6rem); font-weight:300; line-height:1.05; color:var(--sage-deep); margin-bottom:8px; }
+.hero-title em { font-style:italic; color:var(--bark); }
+.hero-sub { font-size:1rem; color:#666; max-width:480px; margin:20px auto 36px; font-weight:300; }
+.hero-badges { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:48px; }
+.badge { background:rgba(255,255,255,.7); border:1px solid var(--sage-pale); border-radius:24px; padding:6px 16px; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--sage-deep); font-weight:500; }
+.btn-primary { background:var(--sage-deep); color:white; border:none; border-radius:32px; padding:14px 36px; font-family:'DM Sans',sans-serif; font-size:0.88rem; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all .3s; text-decoration:none; display:inline-block; }
+.btn-primary:hover { background:var(--sage); transform:translateY(-2px); box-shadow:0 8px 24px rgba(45,82,56,.25); }
+
+/* ABOUT */
+.about-strip { background:var(--sage-deep); color:white; padding:56px 48px; display:flex; align-items:center; gap:48px; flex-wrap:wrap; }
+.about-strip-text { flex:1; min-width:280px; }
+.about-strip-text h2 { font-family:'Cormorant Garamond',serif; font-size:2.2rem; font-weight:300; margin-bottom:12px; line-height:1.2; }
+.about-strip-text h2 em { font-style:italic; color:var(--gold); }
+.about-strip-text p { font-size:0.9rem; opacity:.82; max-width:480px; line-height:1.75; }
+.about-stats { display:flex; gap:48px; flex-wrap:wrap; }
+.stat { text-align:center; }
+.stat-num { font-family:'Cormorant Garamond',serif; font-size:2.8rem; font-weight:600; color:var(--gold); line-height:1; }
+.stat-label { font-size:0.75rem; opacity:.7; letter-spacing:.08em; text-transform:uppercase; margin-top:4px; }
+
+/* PRODUCTS */
+#products { padding:80px 48px; }
+.leaf-divider { display:flex; align-items:center; gap:16px; justify-content:center; padding:48px 0 32px; }
+.leaf-divider::before,.leaf-divider::after { content:''; flex:1; max-width:120px; height:1px; background:var(--sage-pale); }
+.leaf-divider-text { font-family:'Dancing Script',cursive; font-size:1.3rem; color:var(--sage); }
+.section-label { font-size:0.72rem; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); font-weight:500; margin-bottom:8px; display:block; }
+.section-title { font-family:'Cormorant Garamond',serif; font-size:2.8rem; font-weight:300; color:var(--sage-deep); margin-bottom:8px; }
+.section-title em { font-style:italic; }
+.section-sub { font-size:0.9rem; color:#777; margin-bottom:56px; max-width:480px; }
+.filter-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:40px; }
+.filter-tab { background:transparent; border:1px solid var(--sage-pale); border-radius:24px; padding:7px 18px; font-family:'DM Sans',sans-serif; font-size:0.8rem; letter-spacing:.08em; text-transform:uppercase; color:#777; cursor:pointer; transition:all .2s; }
+.filter-tab.active,.filter-tab:hover { background:var(--sage-deep); color:white; border-color:var(--sage-deep); }
+.products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:28px; }
+
+/* CARD */
+.product-card { background:var(--white); border-radius:20px; overflow:hidden; border:1px solid rgba(200,220,200,.4); transition:transform .3s,box-shadow .3s; position:relative; }
+.product-card:hover { transform:translateY(-6px); box-shadow:0 20px 48px rgba(45,82,56,.13); }
+.card-img { width:100%; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; position:relative; }
+.card-img-emoji { font-size:5rem; }
+.card-badge-natural { position:absolute; top:14px; right:14px; background:var(--sage-deep); color:white; font-size:0.65rem; letter-spacing:.12em; text-transform:uppercase; padding:4px 12px; border-radius:12px; font-weight:500; }
+.card-body { padding:22px; }
+.card-category { font-size:0.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); font-weight:500; margin-bottom:6px; }
+.card-name { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:600; color:var(--sage-deep); margin-bottom:6px; line-height:1.2; }
+.card-desc { font-size:0.82rem; color:#888; margin-bottom:16px; line-height:1.55; }
+.card-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+.card-tag { font-size:0.68rem; background:var(--sage-pale); color:var(--sage-deep); border-radius:10px; padding:3px 10px; }
+.card-footer { display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--parchment); padding-top:16px; }
+.price-block .price-orig { font-size:0.75rem; color:#bbb; text-decoration:line-through; }
+.price-block .price { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:600; color:var(--bark); line-height:1; }
+.price-block .price-unit { font-size:0.72rem; color:#aaa; }
+.btn-add { background:var(--sage-deep); color:white; border:none; border-radius:50%; width:42px; height:42px; font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; flex-shrink:0; }
+.btn-add:hover { background:var(--sage); transform:scale(1.1); }
+.card-qty-stepper { display:flex; align-items:center; background:var(--sage-deep); border-radius:24px; overflow:hidden; }
+.card-qty-btn { background:none; border:none; color:white; width:36px; height:36px; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+.card-qty-btn:hover { background:var(--sage); }
+.card-qty-num { color:white; font-size:0.9rem; font-weight:600; min-width:28px; text-align:center; }
+
+/* WHY */
+.why-section { background:var(--parchment); padding:80px 48px; text-align:center; }
+.why-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:32px; max-width:900px; margin:0 auto; }
+.why-item { padding:24px 16px; }
+.why-icon { font-size:2.4rem; margin-bottom:12px; }
+.why-title { font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:600; color:var(--sage-deep); margin-bottom:6px; }
+.why-desc { font-size:0.78rem; color:#888; line-height:1.55; }
+
+/* CART DRAWER */
+.cart-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:200; backdrop-filter:blur(4px); }
+.cart-overlay.open { display:block; }
+.cart-drawer { position:fixed; right:0; top:0; bottom:0; width:380px; max-width:95vw; background:var(--mist); z-index:201; transform:translateX(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; box-shadow:-8px 0 40px rgba(0,0,0,.12); }
+.cart-drawer.open { transform:translateX(0); }
+.cart-header { padding:28px 28px 20px; border-bottom:1px solid var(--sage-pale); display:flex; align-items:center; justify-content:space-between; }
+.cart-header h3 { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:600; color:var(--sage-deep); }
+.cart-close { background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999; }
+.cart-items { flex:1; overflow-y:auto; padding:20px 28px; }
+.cart-empty { text-align:center; padding:60px 0; color:#bbb; font-size:0.9rem; }
+.cart-item { display:flex; gap:14px; padding:16px 0; border-bottom:1px solid var(--sage-pale); }
+.cart-item-icon { width:54px; height:54px; background:var(--parchment); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; flex-shrink:0; }
+.cart-item-info { flex:1; }
+.cart-item-name { font-size:0.9rem; font-weight:500; color:var(--sage-deep); margin-bottom:2px; }
+.cart-item-price { font-family:'Cormorant Garamond',serif; font-size:1rem; color:var(--bark); }
+.cart-item-qty { display:flex; align-items:center; gap:10px; margin-top:6px; }
+.qty-btn { background:var(--sage-pale); border:none; border-radius:50%; width:24px; height:24px; font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--sage-deep); }
+.qty-num { font-size:0.85rem; min-width:20px; text-align:center; }
+.cart-footer { padding:20px 28px 32px; border-top:1px solid var(--sage-pale); }
+.cart-total { display:flex; justify-content:space-between; font-family:'Cormorant Garamond',serif; font-size:1.4rem; color:var(--sage-deep); margin-bottom:8px; }
+.cart-shipping-note { font-size:0.75rem; color:var(--sage); margin-bottom:16px; }
+.btn-checkout { width:100%; background:var(--sage-deep); color:white; border:none; border-radius:32px; padding:16px; font-family:'DM Sans',sans-serif; font-size:0.9rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:all .2s; }
+.btn-checkout:hover { background:var(--sage); }
+.btn-checkout:disabled { background:#bbb; cursor:not-allowed; }
+
+/* AUTH MODAL */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--mist); border-radius:24px; width:440px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 32px 80px rgba(0,0,0,.2); animation:slideUp .3s ease; }
+@keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+.modal-header { background:var(--sage-deep); color:white; padding:28px 32px; border-radius:24px 24px 0 0; display:flex; align-items:center; justify-content:space-between; }
+.modal-header h3 { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:300; }
+.modal-header button { background:none; border:none; color:rgba(255,255,255,.7); font-size:1.4rem; cursor:pointer; }
+.modal-body { padding:32px; }
+.form-group { margin-bottom:18px; }
+.form-label { display:block; font-size:0.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--sage-deep); margin-bottom:6px; font-weight:500; }
+.form-input { width:100%; padding:12px 16px; border:1.5px solid var(--sage-pale); border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.9rem; background:white; color:var(--charcoal); outline:none; transition:border-color .2s; }
+.form-input:focus { border-color:var(--sage); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.form-section-title { font-family:'Cormorant Garamond',serif; font-size:1.3rem; color:var(--sage-deep); margin-bottom:18px; font-weight:600; }
+.auth-divider { text-align:center; color:#aaa; font-size:0.8rem; margin:20px 0; position:relative; }
+.auth-divider::before,.auth-divider::after { content:''; position:absolute; top:50%; width:40%; height:1px; background:var(--sage-pale); }
+.auth-divider::before { left:0; } .auth-divider::after { right:0; }
+.btn-google { width:100%; background:white; border:1.5px solid var(--sage-pale); border-radius:12px; padding:12px; font-family:'DM Sans',sans-serif; font-size:0.9rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:all .2s; }
+.btn-google:hover { border-color:var(--sage); background:var(--sage-pale); }
+.btn-full { width:100%; background:var(--sage-deep); color:white; border:none; border-radius:32px; padding:14px; font-family:'DM Sans',sans-serif; font-size:0.88rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:all .2s; margin-top:8px; }
+.btn-full:hover { background:var(--sage); }
+.auth-switch { text-align:center; margin-top:16px; font-size:0.83rem; color:#888; }
+.auth-switch a { color:var(--sage-deep); cursor:pointer; font-weight:500; }
+
+/* PAYMENT MODAL */
+.payment-steps { display:flex; margin-bottom:28px; border-bottom:1px solid var(--sage-pale); padding-bottom:24px; }
+.step-item { flex:1; text-align:center; position:relative; }
+.step-item::after { content:''; position:absolute; top:15px; left:50%; right:-50%; height:1px; background:var(--sage-pale); z-index:0; }
+.step-item:last-child::after { display:none; }
+.step-dot { width:32px; height:32px; border-radius:50%; border:2px solid var(--sage-pale); background:var(--mist); margin:0 auto 6px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:600; color:#bbb; position:relative; z-index:1; transition:all .3s; }
+.step-item.active .step-dot { background:var(--sage-deep); border-color:var(--sage-deep); color:white; }
+.step-item.done .step-dot { background:var(--gold); border-color:var(--gold); color:white; }
+.step-label { font-size:0.68rem; letter-spacing:.08em; text-transform:uppercase; color:#aaa; }
+.step-item.active .step-label { color:var(--sage-deep); font-weight:600; }
+.form-step { display:none; }
+.form-step.visible { display:block; }
+.order-summary { background:var(--parchment); border-radius:16px; padding:20px; margin-bottom:24px; }
+.order-row { display:flex; justify-content:space-between; font-size:0.85rem; color:#777; margin-bottom:8px; }
+.order-row.total { font-family:'Cormorant Garamond',serif; font-size:1.2rem; color:var(--sage-deep); font-weight:600; border-top:1px solid var(--sage-pale); padding-top:12px; margin-top:8px; }
+.modal-btns { display:flex; gap:12px; margin-top:24px; }
+.btn-back { flex:1; background:transparent; color:var(--sage-deep); border:1.5px solid var(--sage-pale); border-radius:32px; padding:13px; font-family:'DM Sans',sans-serif; font-size:0.85rem; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; }
+.btn-back:hover { border-color:var(--sage); }
+.btn-next { flex:2; background:var(--sage-deep); color:white; border:none; border-radius:32px; padding:13px; font-family:'DM Sans',sans-serif; font-size:0.85rem; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:all .2s; }
+.btn-next:hover { background:var(--sage); }
+.btn-pay { background:linear-gradient(135deg,#2D5238,#4A7C59); color:white; border:none; border-radius:32px; padding:16px 32px; font-family:'DM Sans',sans-serif; font-size:0.95rem; font-weight:500; letter-spacing:.08em; cursor:pointer; width:100%; margin-top:20px; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:10px; }
+.btn-pay:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(45,82,56,.3); }
+.razorpay-badge { font-size:0.72rem; opacity:.6; margin-top:10px; text-align:center; }
+
+/* ORDER TRACKING */
+.tracking-section { padding:80px 48px; max-width:800px; margin:0 auto; }
+.tracking-card { background:white; border-radius:20px; padding:32px; border:1px solid rgba(200,220,200,.4); margin-bottom:24px; }
+.tracking-order-id { font-size:0.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+.tracking-name { font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:var(--sage-deep); margin-bottom:4px; }
+.tracking-date { font-size:0.82rem; color:#999; }
+.tracking-timeline { margin-top:32px; position:relative; }
+.tracking-timeline::before { content:''; position:absolute; left:18px; top:0; bottom:0; width:2px; background:var(--sage-pale); }
+.timeline-step { display:flex; gap:20px; padding-bottom:28px; position:relative; }
+.timeline-dot { width:38px; height:38px; border-radius:50%; border:2px solid var(--sage-pale); background:white; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; position:relative; z-index:1; transition:all .3s; }
+.timeline-step.done .timeline-dot { background:var(--sage-deep); border-color:var(--sage-deep); }
+.timeline-step.active .timeline-dot { background:var(--gold); border-color:var(--gold); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.4)} 50%{box-shadow:0 0 0 8px rgba(201,168,76,0)} }
+.timeline-info { padding-top:6px; }
+.timeline-title { font-weight:500; color:var(--sage-deep); font-size:0.95rem; }
+.timeline-sub { font-size:0.8rem; color:#999; margin-top:2px; }
+
+/* SUCCESS */
+.success-screen { text-align:center; padding:20px 0; }
+.success-icon { font-size:4rem; margin-bottom:16px; }
+.success-title { font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--sage-deep); margin-bottom:10px; }
+.success-sub { font-size:0.88rem; color:#888; line-height:1.65; }
+.success-order-id { background:var(--sage-pale); border-radius:12px; padding:12px 20px; margin:16px auto; max-width:280px; font-family:monospace; font-size:1rem; color:var(--sage-deep); font-weight:600; }
+
+/* FOOTER */
+footer { background:var(--sage-deep); color:white; padding:60px 48px 32px; }
+.footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:48px; margin-bottom:48px; }
+.footer-brand { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:300; margin-bottom:12px; }
+.footer-brand em { color:var(--gold); font-style:italic; }
+.footer-tagline { font-size:0.8rem; opacity:.65; line-height:1.7; max-width:300px; }
+.footer-heading { font-size:0.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); margin-bottom:16px; font-weight:500; }
+.footer-links { list-style:none; }
+.footer-links li { margin-bottom:10px; }
+.footer-links a { font-size:0.85rem; opacity:.7; color:white; text-decoration:none; transition:opacity .2s; }
+.footer-links a:hover { opacity:1; }
+.footer-contact { font-size:0.85rem; opacity:.75; }
+.footer-contact p { margin-bottom:8px; }
+.footer-bottom { border-top:1px solid rgba(255,255,255,.12); padding-top:24px; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; opacity:.5; flex-wrap:wrap; gap:12px; }
+.footer-tagline-bottom { font-family:'Dancing Script',cursive; font-size:1rem; color:var(--gold); opacity:.9; }
+
+/* TOAST */
+.toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--sage-deep); color:white; padding:12px 24px; border-radius:32px; font-size:0.85rem; z-index:400; transition:transform .3s; pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* USER MENU DROPDOWN */
+.user-dropdown { position:relative; }
+.user-menu { position:absolute; right:0; top:calc(100% + 8px); background:white; border:1px solid var(--sage-pale); border-radius:16px; padding:8px; min-width:200px; box-shadow:0 12px 40px rgba(0,0,0,.12); display:none; z-index:200; }
+.user-dropdown:hover .user-menu,.user-menu:hover { display:block; }
+.user-menu-item { padding:10px 14px; border-radius:10px; font-size:0.85rem; cursor:pointer; color:var(--charcoal); display:flex; align-items:center; gap:8px; transition:background .15s; }
+.user-menu-item:hover { background:var(--sage-pale); }
+.user-menu-sep { height:1px; background:var(--sage-pale); margin:6px 0; }
+
+/* LOADING SPINNER */
+.spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* LOGGED-OUT GATE */
+.login-gate { background:rgba(255,255,255,.8); border:1px solid var(--sage-pale); border-radius:16px; padding:32px; text-align:center; margin-top:24px; }
+.login-gate p { color:#888; margin-bottom:16px; font-size:0.9rem; }
+
+@media(max-width:768px){
+  nav{padding:0 20px;}
+  .nav-links{display:none;}
+  #products,.about-strip,.why-section,.tracking-section,footer{padding-left:20px;padding-right:20px;}
+  .about-strip{flex-direction:column;}
+  .footer-grid{grid-template-columns:1fr;gap:32px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Amma<span>'s</span></div>
+  <ul class="nav-links">
+    <li><a href="#products">Products</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#tracking">My Orders</a></li>
+    <li><a href="tel:8310477341">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <!-- Auth button — swaps based on login state -->
+    <div id="navAuthArea">
+      <button class="nav-user-btn" onclick="openAuthModal('login')">👤 Login</button>
+    </div>
+    <button class="nav-cart" onclick="openCart()">
+      🛒 Basket <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <p class="hero-eyebrow">Rooted in Nature, Made with Love</p>
+  <h1 class="hero-title">Amma's <em>Organic</em><br>Products</h1>
+  <p class="hero-sub">Embrace the goodness of nature for healthy skin and beautiful hair. Lovingly handmade in small batches.</p>
+  <div class="hero-badges">
+    <span class="badge">🌿 100% Organic</span>
+    <span class="badge">🧪 Chemical Free</span>
+    <span class="badge">🐰 Cruelty Free</span>
+    <span class="badge">🌍 Eco Friendly</span>
+    <span class="badge">🤝 Made in India</span>
+  </div>
+  <a href="#products" class="btn-primary">Explore Products</a>
+</section>
+
+<!-- ABOUT -->
+<section class="about-strip" id="about">
+  <div class="about-strip-text">
+    <h2>Pure. Natural.<br><em>Made with Care.</em></h2>
+    <p>At Amma's Organic Products, we believe in the power of nature and the purity of honest ingredients. Every product is lovingly handmade in small batches using organic, skin-friendly, and hair-nourishing ingredients.</p>
+  </div>
+  <div class="about-stats">
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Natural</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Toxins</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Love</div></div>
+  </div>
+</section>
+
+<!-- PRODUCTS -->
+<section id="products">
+  <div class="leaf-divider"><span class="leaf-divider-text">Our Products</span></div>
+  <span class="section-label">Handcrafted Collection</span>
+  <h2 class="section-title">Pure Goodness,<br><em>Every Drop & Bar</em></h2>
+  <p class="section-sub">Each product crafted in small batches so you always get it fresh.</p>
+  <div class="filter-tabs">
+    <button class="filter-tab active" onclick="filterProducts('all',this)">All</button>
+    <button class="filter-tab" onclick="filterProducts('soap',this)">Organic Soaps</button>
+    <button class="filter-tab" onclick="filterProducts('oil',this)">Hair Oils</button>
+    <button class="filter-tab" onclick="filterProducts('combo',this)">Combos</button>
+  </div>
+  <div class="products-grid" id="productsGrid"></div>
+</section>
+
+<!-- WHY US -->
+<section class="why-section" id="why">
+  <div class="leaf-divider"><span class="leaf-divider-text">Why Choose Amma's</span></div>
+  <div class="why-grid">
+    <div class="why-item"><div class="why-icon">🌿</div><div class="why-title">100% Organic</div><div class="why-desc">Only certified natural and plant-based ingredients.</div></div>
+    <div class="why-item"><div class="why-icon">🧪</div><div class="why-title">Chemical Free</div><div class="why-desc">No parabens, sulphates, or harmful toxins. Ever.</div></div>
+    <div class="why-item"><div class="why-icon">🐰</div><div class="why-title">Cruelty Free</div><div class="why-desc">Never tested on animals. Good for you and them.</div></div>
+    <div class="why-item"><div class="why-icon">🌍</div><div class="why-title">Eco Friendly</div><div class="why-desc">Minimal, recyclable packaging. Good for Earth.</div></div>
+    <div class="why-item"><div class="why-icon">🤲</div><div class="why-title">Small Batches</div><div class="why-desc">Made with personal care, never mass-produced.</div></div>
+  </div>
+</section>
+
+<!-- ORDER TRACKING -->
+<section class="tracking-section" id="tracking">
+  <div class="leaf-divider"><span class="leaf-divider-text">My Orders</span></div>
+  <div id="trackingContent">
+    <div class="login-gate">
+      <p>Please log in to view your order history and tracking.</p>
+      <button class="btn-primary" onclick="openAuthModal('login')">Login to View Orders</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">Amma's <em>Organic</em></div>
+      <p class="footer-tagline">Pure. Natural. Made with Care. For You. ♡<br><br>Made with love in India.</p>
+    </div>
+    <div>
+      <div class="footer-heading">Quick Links</div>
+      <ul class="footer-links">
+        <li><a href="#products">Products</a></li>
+        <li><a href="#about">Our Story</a></li>
+        <li><a href="#tracking">My Orders</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-heading">Get in Touch</div>
+      <div class="footer-contact">
+        <p>📞 8310477341</p>
+        <p>🌿 Bangalore, India</p>
+        <p style="margin-top:16px;font-size:.78rem;opacity:.6">Orders dispatched within 2–3 working days.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Amma's Organic Products. All rights reserved.</span>
+    <span class="footer-tagline-bottom">Choose natural. Choose pure. Choose Amma's. ♡</span>
+  </div>
+</footer>
+
+<!-- CART DRAWER -->
+<div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-header">
+    <h3>Your Basket 🌿</h3>
+    <button class="cart-close" onclick="closeCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty">Your basket is empty.<br>Add some goodness!</div>
+  </div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="cart-total"><span>Total</span><span id="cartTotal">₹0</span></div>
+    <div class="cart-shipping-note" id="shippingNote"></div>
+    <button class="btn-checkout" id="checkoutBtn" onclick="startCheckout()">Proceed to Checkout →</button>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="authModalTitle">🌿 Welcome Back</h3>
+      <button onclick="closeAuthModal()">✕</button>
+    </div>
+    <div class="modal-body" id="authModalBody">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🌿 Secure Checkout</h3>
+      <button onclick="closePayment()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="payment-steps">
+        <div class="step-item active" id="step1ind"><div class="step-dot">1</div><div class="step-label">Delivery</div></div>
+        <div class="step-item" id="step2ind"><div class="step-dot">2</div><div class="step-label">Review</div></div>
+        <div class="step-item" id="step3ind"><div class="step-dot">3</div><div class="step-label">Pay</div></div>
+      </div>
+
+      <div class="order-summary" id="modalOrderSummary"></div>
+
+      <!-- Step 1: Delivery -->
+      <div class="form-step visible" id="formStep1">
+        <div class="form-section-title">Delivery Details</div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" id="del_name" type="text" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input class="form-input" id="del_phone" type="tel" placeholder="10-digit mobile">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="del_email" type="email" placeholder="for order confirmation">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Address</label>
+          <input class="form-input" id="del_addr" type="text" placeholder="Flat / Building / Street / Area">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input class="form-input" id="del_city" type="text" placeholder="City">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pincode</label>
+            <input class="form-input" id="del_pin" type="text" placeholder="560001">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Number <span style="font-size:.7rem;opacity:.6">(for updates)</span></label>
+          <input class="form-input" id="del_wa" type="tel" placeholder="Same as phone? Leave blank">
+        </div>
+        <div class="modal-btns">
+          <button class="btn-next" onclick="goStep(2)" style="flex:1">Review Order →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Review -->
+      <div class="form-step" id="formStep2">
+        <div class="form-section-title">Order Review</div>
+        <div id="confirmOrderItems"></div>
+        <div style="background:var(--sage-pale);border-radius:12px;padding:14px 18px;font-size:0.82rem;color:var(--sage-deep);margin-top:12px">
+          📦 Delivery to: <strong id="confirmAddr"></strong>
+        </div>
+        <div class="modal-btns">
+          <button class="btn-back" onclick="goStep(1)">← Edit</button>
+          <button class="btn-next" onclick="goStep(3)">Proceed to Pay →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Pay -->
+      <div class="form-step" id="formStep3">
+        <div class="form-section-title">Payment</div>
+        <div style="background:var(--parchment);border-radius:16px;padding:24px;text-align:center">
+          <div style="font-size:2rem;margin-bottom:8px">🔒</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--sage-deep);margin-bottom:6px">Secure Payment via Razorpay</div>
+          <div style="font-size:0.8rem;color:#888">Pay using UPI / Card / NetBanking / Wallets</div>
+          <div style="margin-top:16px;font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--bark)" id="payAmountDisplay"></div>
+        </div>
+        <button class="btn-pay" onclick="initiateRazorpay()" style="display:none">
+          <span>Pay Securely Now</span> 🔒
+        </button>
+        <div class="razorpay-badge" style="display:none">Powered by Razorpay · 256-bit SSL · PCI-DSS Compliant</div>
+
+        <!-- TEST MODE BUTTON — remove this once Razorpay is live -->
+        <div style="margin-top:20px;padding:16px;background:#fffbe6;border:1.5px dashed #C9A84C;border-radius:14px;text-align:center">
+          <div style="font-size:0.75rem;color:#C9A84C;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:8px">🧪 Test Mode Only</div>
+          <div style="font-size:0.82rem;color:#888;margin-bottom:12px">Skip payment and place a test order to see how Firestore + tracking works</div>
+          <button onclick="placeTestOrder()" style="background:#C9A84C;color:white;border:none;border-radius:24px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;width:100%">
+            ✅ Place Test Order (No Payment)
+          </button>
+        </div>
+
+        <div class="modal-btns" style="margin-top:16px">
+          <button class="btn-back" onclick="goStep(2)" style="flex:1">← Back</button>
+        </div>
+      </div>
+
+      <!-- Success -->
+      <div class="form-step" id="formStepSuccess">
+        <div class="success-screen">
+          <div class="success-icon">🌿✨</div>
+          <div class="success-title">Order Placed!</div>
+          <div class="success-order-id" id="successOrderId">ORD-000000</div>
+          <p class="success-sub">
+            Your order has been confirmed and is being prepared with love.<br><br>
+            📧 Confirmation sent to your email<br>
+            📱 WhatsApp update sent to your number<br><br>
+            Track your order below or check your inbox. ♡
+          </p>
+          <button class="btn-next" style="margin-top:28px;width:100%" onclick="closePayment();resetCart();loadOrders()">View My Orders</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:      CONFIG.FIREBASE_API_KEY,
+  authDomain:  CONFIG.FIREBASE_AUTH_DOMAIN,
+  projectId:   CONFIG.FIREBASE_PROJECT_ID,
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── Expose to window so non-module functions can use them ──
+window._auth = auth;
+window._db   = db;
+window._collection    = collection;
+window._addDoc        = addDoc;
+window._query         = query;
+window._where         = where;
+window._orderBy       = orderBy;
+window._getDocs       = getDocs;
+window._serverTimestamp = serverTimestamp;
+window._GoogleProvider = new GoogleAuthProvider();
+window._signInWithPopup = signInWithPopup;
+window._signInWithEmail = signInWithEmailAndPassword;
+window._createWithEmail = createUserWithEmailAndPassword;
+window._signOut         = signOut;
+
+// Auth state listener
+onAuthStateChanged(auth, user => {
+  window.currentUser = user;
+  updateNavAuth(user);
+  if (user) loadOrders();
+});
+</script>
+
+<!-- Razorpay SDK — loaded only when needed -->
+<!-- <script src="https://checkout.razorpay.com/v1/checkout.js"></script> -->
+
+<script>
+// ════════════════════════════════════════
+//  PRODUCTS DATA
+// ════════════════════════════════════════
+const PRODUCTS = [
+  { id:1, category:'soap', emoji:'🌿', name:'Neem & Tulsi Soap',       desc:'Deep cleansing with neem and tulsi. Ideal for acne-prone skin.',            tags:['Handmade','Skin Loving','Natural Oils'],   price:149, orig:199, badge:'Bestseller' },
+  { id:2, category:'soap', emoji:'🌸', name:'Rose Goat Milk Soap',     desc:'Gentle, moisturising. Rich in vitamins that nourish and soften skin.',       tags:['Moisturising','Sensitive Skin','Handmade'], price:169, orig:220, badge:null },
+  { id:3, category:'soap', emoji:'☕', name:'Coffee Scrub Soap',        desc:'Exfoliating coffee + coconut oil bar that brightens and de-tans.',           tags:['Exfoliating','Brightening','All Skin'],    price:159, orig:210, badge:null },
+  { id:4, category:'soap', emoji:'🌾', name:'Turmeric & Honey Soap',   desc:'Ancient Ayurvedic blend for a natural glow. Anti-bacterial.',                tags:['Glow','Ayurvedic','Anti-bacterial'],        price:159, orig:199, badge:'New' },
+  { id:5, category:'oil',  emoji:'🫙', name:'Bhringraj Hair Oil',       desc:'The king of herbs for hair. Reduces fall, promotes growth.',                 tags:['Strengthens Roots','Reduces Hair Fall','Herbal'], price:249, orig:320, badge:'Bestseller' },
+  { id:6, category:'oil',  emoji:'🌰', name:'Coconut & Amla Oil',       desc:'Timeless blend for long, shiny hair. Rich in Vitamin C.',                   tags:['Promotes Growth','Herbal Infusion','Scalp Care'], price:219, orig:280, badge:null },
+  { id:7, category:'oil',  emoji:'🌺', name:'Hibiscus Castor Oil',      desc:'Thick castor oil blended with hibiscus for lustrous, strong hair.',          tags:['Conditioning','Lustre','Anti-breakage'],   price:269, orig:350, badge:null },
+  { id:8, category:'combo',emoji:'🎁', name:'Skin & Hair Gift Set',     desc:'2 soaps + 1 hair oil. Perfect gift for loved ones.',                         tags:['Gift Ready','Value Pack','Bestsellers'],    price:499, orig:699, badge:'Save ₹200' },
+];
+
+let cart = {};
+let currentUser = null;
+
+// ════════════════════════════════════════
+//  PRODUCT CARD RENDERING
+// ════════════════════════════════════════
+function categoryLabel(c){ return{soap:'Organic Soap',oil:'Hair Oil',combo:'Combo Set'}[c]; }
+function categoryGradient(c){ return{soap:'linear-gradient(135deg,#e8f5e8,#d4ead4)',oil:'linear-gradient(135deg,#fff3e0,#ffe0b2)',combo:'linear-gradient(135deg,#fce4ec,#f8bbd0)'}[c]; }
+
+function cardControlHTML(id){
+  const qty = cart[id]||0;
+  if(!qty) return `<button class="btn-add" id="cardCtrl${id}" onclick="cardAdd(${id})">+</button>`;
+  return `<div class="card-qty-stepper" id="cardCtrl${id}">
+    <button class="card-qty-btn" onclick="cardChange(${id},-1)">−</button>
+    <span class="card-qty-num">${qty}</span>
+    <button class="card-qty-btn" onclick="cardChange(${id},1)">+</button>
+  </div>`;
+}
+
+function renderProducts(filter='all'){
+  const grid=document.getElementById('productsGrid');
+  const list=filter==='all'?PRODUCTS:PRODUCTS.filter(p=>p.category===filter);
+  grid.innerHTML=list.map(p=>`
+    <div class="product-card">
+      <div class="card-img" style="background:${categoryGradient(p.category)}">
+        <span class="card-img-emoji">${p.emoji}</span>
+        ${p.badge?`<span class="card-badge-natural">${p.badge}</span>`:''}
+      </div>
+      <div class="card-body">
+        <div class="card-category">${categoryLabel(p.category)}</div>
+        <div class="card-name">${p.name}</div>
+        <div class="card-desc">${p.desc}</div>
+        <div class="card-tags">${p.tags.map(t=>`<span class="card-tag">${t}</span>`).join('')}</div>
+        <div class="card-footer">
+          <div class="price-block">
+            <div class="price-orig">₹${p.orig}</div>
+            <div class="price">₹${p.price}</div>
+            <div class="price-unit">per unit</div>
+          </div>
+          ${cardControlHTML(p.id)}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function syncCardStepper(id){
+  const el=document.getElementById('cardCtrl'+id);
+  if(!el) return;
+  el.outerHTML=cardControlHTML(id);
+}
+
+function cardAdd(id){ cart[id]=1; syncCardStepper(id); updateCartUI(); showToast(`${PRODUCTS.find(x=>x.id===id).name} added 🌿`); }
+function cardChange(id,d){ cart[id]=Math.max(0,(cart[id]||0)+d); if(!cart[id])delete cart[id]; syncCardStepper(id); updateCartUI(); }
+
+function filterProducts(cat,btn){
+  document.querySelectorAll('.filter-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts(cat);
+}
+
+// ════════════════════════════════════════
+//  CART
+// ════════════════════════════════════════
+function cartTotal(){ return Object.keys(cart).filter(k=>cart[k]>0).reduce((s,k)=>s+PRODUCTS.find(x=>x.id==k).price*cart[k],0); }
+function shipping(){ return cartTotal()>=499?0:50; }
+
+function updateCartUI(){
+  const total=Object.values(cart).reduce((s,q)=>s+q,0);
+  document.getElementById('cartCount').textContent=total;
+  renderCartItems();
+}
+
+function renderCartItems(){
+  const el=document.getElementById('cartItems');
+  const footer=document.getElementById('cartFooter');
+  const keys=Object.keys(cart).filter(k=>cart[k]>0);
+  if(!keys.length){
+    el.innerHTML='<div class="cart-empty">Your basket is empty.<br>Add some goodness!</div>';
+    footer.style.display='none'; return;
+  }
+  footer.style.display='block';
+  let sum=0;
+  el.innerHTML=keys.map(id=>{
+    const p=PRODUCTS.find(x=>x.id==id), q=cart[id]; sum+=p.price*q;
+    return `<div class="cart-item">
+      <div class="cart-item-icon">${p.emoji}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${p.name}</div>
+        <div class="cart-item-price">₹${p.price} × ${q} = ₹${p.price*q}</div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" onclick="changeQty(${id},-1)">−</button>
+          <span class="qty-num">${q}</span>
+          <button class="qty-btn" onclick="changeQty(${id},1)">+</button>
+        </div>
+      </div></div>`;
+  }).join('');
+  const sh=shipping();
+  document.getElementById('cartTotal').textContent='₹'+(sum+sh);
+  document.getElementById('shippingNote').textContent=sh===0?'🎉 Free shipping applied!':'Add ₹'+(499-sum)+' more for free shipping';
+}
+
+function changeQty(id,d){ cart[id]=Math.max(0,(cart[id]||0)+d); if(!cart[id])delete cart[id]; syncCardStepper(id); updateCartUI(); }
+
+function openCart(){ document.getElementById('cartOverlay').classList.add('open'); document.getElementById('cartDrawer').classList.add('open'); }
+function closeCart(){ document.getElementById('cartOverlay').classList.remove('open'); document.getElementById('cartDrawer').classList.remove('open'); }
+
+function startCheckout(){
+  if(!window.currentUser){ closeCart(); openAuthModal('login','checkout'); return; }
+  closeCart();
+  buildOrderSummary();
+  document.getElementById('paymentModal').classList.add('open');
+  goStep(1);
+  // Pre-fill email from user account
+  const u=window.currentUser;
+  if(u.email) document.getElementById('del_email').value=u.email;
+  if(u.displayName) document.getElementById('del_name').value=u.displayName;
+  if(u.phoneNumber) document.getElementById('del_phone').value=u.phoneNumber;
+}
+
+function resetCart(){ cart={}; updateCartUI(); renderProducts(); }
+
+// ════════════════════════════════════════
+//  AUTH MODAL
+// ════════════════════════════════════════
+let _afterLoginAction=null;
+
+function openAuthModal(mode='login', afterAction=null){
+  _afterLoginAction=afterAction;
+  document.getElementById('authModal').classList.add('open');
+  renderAuthModal(mode);
+}
+function closeAuthModal(){ document.getElementById('authModal').classList.remove('open'); }
+
+function renderAuthModal(mode){
+  const isLogin=mode==='login';
+  document.getElementById('authModalTitle').textContent=isLogin?'🌿 Welcome Back':'🌿 Create Account';
+  document.getElementById('authModalBody').innerHTML=`
+    <button class="btn-google" onclick="authGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.9 7.2l7.6 5.9c4.5-4.1 7.1-10.2 7.1-17.1z"/><path fill="#FBBC05" d="M10.3 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6l-7.8-6.1A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.5 10.7l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.4 0-11.8-3.7-13.7-9.2l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-divider">or</div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="authEmail" type="email" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="authPassword" type="password" placeholder="••••••••">
+    </div>
+    ${!isLogin?`<div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="authName" type="text" placeholder="Your name"></div>`:''}
+    <button class="btn-full" onclick="authEmail('${mode}')" id="authSubmitBtn">
+      ${isLogin?'Login':'Create Account'}
+    </button>
+    <div class="auth-switch">
+      ${isLogin?`New here? <a onclick="renderAuthModal('signup')">Create account</a>`:`Already have one? <a onclick="renderAuthModal('login')">Login</a>`}
+    </div>`;
+}
+
+async function authGoogle(){
+  try {
+    await window._signInWithPopup(window._auth, window._GoogleProvider);
+    closeAuthModal();
+    showToast('Welcome! 🌿');
+    if(_afterLoginAction==='checkout') setTimeout(startCheckout,300);
+  } catch(e){ showToast('Login failed: '+e.message); }
+}
+
+async function authEmail(mode){
+  const btn=document.getElementById('authSubmitBtn');
+  btn.innerHTML='<span class="spinner"></span>';
+  const email=document.getElementById('authEmail').value;
+  const pass=document.getElementById('authPassword').value;
+  try {
+    if(mode==='login'){
+      await window._signInWithEmail(window._auth, email, pass);
+    } else {
+      const cred=await window._createWithEmail(window._auth, email, pass);
+      // Optionally update display name — requires updateProfile import if needed
+    }
+    closeAuthModal();
+    showToast('Welcome to Amma\'s! 🌿');
+    if(_afterLoginAction==='checkout') setTimeout(startCheckout,300);
+  } catch(e){
+    btn.textContent=mode==='login'?'Login':'Create Account';
+    showToast('Error: '+e.message);
+  }
+}
+
+function updateNavAuth(user){
+  const area=document.getElementById('navAuthArea');
+  if(!user){
+    area.innerHTML=`<button class="nav-user-btn" onclick="openAuthModal('login')">👤 Login</button>`;
+  } else {
+    const name=user.displayName||user.email.split('@')[0];
+    const avatar=user.photoURL?`<img class="nav-avatar" src="${user.photoURL}">`:'👤';
+    area.innerHTML=`<div class="user-dropdown">
+      <button class="nav-user-btn">${avatar} ${name} ▾</button>
+      <div class="user-menu">
+        <div class="user-menu-item" onclick="document.getElementById('tracking').scrollIntoView({behavior:'smooth'})">📦 My Orders</div>
+        <div class="user-menu-sep"></div>
+        <div class="user-menu-item" onclick="doSignOut()">🚪 Sign Out</div>
+      </div>
+    </div>`;
+  }
+}
+
+async function doSignOut(){
+  await window._signOut(window._auth);
+  document.getElementById('trackingContent').innerHTML=`<div class="login-gate"><p>Please log in to view your order history.</p><button class="btn-primary" onclick="openAuthModal('login')">Login to View Orders</button></div>`;
+  showToast('Signed out. See you soon! 🌿');
+}
+
+// ════════════════════════════════════════
+//  PAYMENT MODAL / STEPS
+// ════════════════════════════════════════
+function buildOrderSummary(){
+  const keys=Object.keys(cart).filter(k=>cart[k]>0);
+  let sum=0;
+  const rows=keys.map(id=>{
+    const p=PRODUCTS.find(x=>x.id==id), q=cart[id], sub=p.price*q;
+    sum+=sub;
+    return `<div class="order-row"><span>${p.name} × ${q}</span><span>₹${sub}</span></div>`;
+  }).join('');
+  const sh=shipping();
+  const html=rows+`<div class="order-row"><span>Shipping</span><span>${sh===0?'Free 🎉':'₹'+sh}</span></div><div class="order-row total"><span>Total</span><span>₹${sum+sh}</span></div>`;
+  document.getElementById('modalOrderSummary').innerHTML=html;
+  document.getElementById('confirmOrderItems').innerHTML=`<div class="order-summary">${html}</div>`;
+  document.getElementById('payAmountDisplay').textContent='₹'+(sum+sh);
+}
+
+function goStep(n){
+  [1,2,3,'Success'].forEach(s=>{
+    const el=document.getElementById('formStep'+s);
+    if(el)el.classList.remove('visible');
+  });
+  [1,2,3].forEach(s=>{
+    const ind=document.getElementById('step'+s+'ind');
+    if(!ind)return;
+    ind.classList.remove('active','done');
+    if(s<n)ind.classList.add('done');
+  });
+  const t=document.getElementById('formStep'+n);
+  if(t)t.classList.add('visible');
+  const ind=document.getElementById('step'+n+'ind');
+  if(ind)ind.classList.add('active');
+
+  if(n===2){
+    const addr=[document.getElementById('del_addr').value,document.getElementById('del_city').value,document.getElementById('del_pin').value].filter(Boolean).join(', ');
+    document.getElementById('confirmAddr').textContent=addr||'(not filled)';
+    buildOrderSummary();
+  }
+}
+
+function closePayment(){ document.getElementById('paymentModal').classList.remove('open'); }
+
+// ════════════════════════════════════════
+//  TEST ORDER (no payment)
+// ════════════════════════════════════════
+async function placeTestOrder() {
+  await onPaymentSuccess({
+    razorpay_payment_id: 'TEST-' + Date.now(),
+    razorpay_order_id:   'TEST-ORDER'
+  });
+}
+
+// ════════════════════════════════════════
+//  RAZORPAY INTEGRATION
+// ════════════════════════════════════════
+function initiateRazorpay(){
+  const sum=Object.keys(cart).filter(k=>cart[k]>0).reduce((s,k)=>s+PRODUCTS.find(x=>x.id==k).price*cart[k],0);
+  const sh=shipping();
+  const totalPaise=(sum+sh)*100;
+  const user=window.currentUser;
+  const name=document.getElementById('del_name').value||user?.displayName||'';
+  const email=document.getElementById('del_email').value||user?.email||'';
+  const phone=document.getElementById('del_phone').value||'';
+
+  const options={
+    key: CONFIG.RAZORPAY_KEY_ID,
+    amount: totalPaise,
+    currency: 'INR',
+    name: "Amma's Organic Products",
+    description: 'Organic Goodness Order',
+    image: '', // add your logo URL
+    prefill: { name, email, contact: phone },
+    theme: { color: '#2D5238' },
+    handler: function(response){
+      onPaymentSuccess(response);
+    },
+    modal:{
+      ondismiss: function(){ showToast('Payment cancelled.'); }
+    }
+  };
+  const rzp=new Razorpay(options);
+  rzp.open();
+}
+
+async function onPaymentSuccess(rzpResponse){
+  const user=window.currentUser;
+  const orderId='ORD-'+Date.now();
+  const name=document.getElementById('del_name').value;
+  const email=document.getElementById('del_email').value||user?.email||'';
+  const phone=document.getElementById('del_phone').value;
+  const wa=document.getElementById('del_wa').value||phone;
+  const addr=[document.getElementById('del_addr').value,document.getElementById('del_city').value,document.getElementById('del_pin').value].join(', ');
+
+  const items=Object.keys(cart).filter(k=>cart[k]>0).map(id=>{
+    const p=PRODUCTS.find(x=>x.id==id);
+    return { id:p.id, name:p.name, emoji:p.emoji, qty:cart[id], price:p.price, subtotal:p.price*cart[id] };
+  });
+  const sum=items.reduce((s,i)=>s+i.subtotal,0);
+  const sh=shipping();
+  const total=sum+sh;
+
+  const orderData={
+    orderId, userId:user?.uid||'guest',
+    customerName:name, email, phone, whatsapp:wa, address:addr,
+    items, subtotal:sum, shipping:sh, total,
+    razorpayPaymentId: rzpResponse.razorpay_payment_id,
+    razorpayOrderId:   rzpResponse.razorpay_order_id||'',
+    status:'confirmed', createdAt:window._serverTimestamp?.()
+  };
+
+  // 1. Save to Firestore
+  try {
+    await window._addDoc(window._collection(window._db,'orders'), orderData);
+  } catch(e){ console.warn('Firestore save failed:',e); }
+
+  // 2. Trigger n8n webhook → sends Email + WhatsApp
+  try {
+    await fetch(CONFIG.N8N_WEBHOOK_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(orderData)
+    });
+  } catch(e){ console.warn('n8n webhook failed:',e); }
+
+  // 3. Show success screen
+  document.getElementById('successOrderId').textContent=orderId;
+  goStep('Success');
+  [1,2,3].forEach(s=>{ const i=document.getElementById('step'+s+'ind'); if(i){i.classList.remove('active');i.classList.add('done');} });
+}
+
+// ════════════════════════════════════════
+//  ORDER TRACKING
+// ════════════════════════════════════════
+const STATUS_STEPS=[
+  {key:'confirmed',  label:'Order Confirmed',   icon:'✅', desc:'We\'ve received your order'},
+  {key:'preparing',  label:'Being Prepared',     icon:'🌿', desc:'Handcrafting your products with love'},
+  {key:'packed',     label:'Packed',             icon:'📦', desc:'Your order is packed and ready'},
+  {key:'dispatched', label:'Out for Delivery',   icon:'🚚', desc:'On its way to you'},
+  {key:'delivered',  label:'Delivered',          icon:'🎉', desc:'Delivered. Enjoy the goodness!'},
+];
+
+async function loadOrders(){
+  const user=window.currentUser;
+  if(!user) return;
+  const tc=document.getElementById('trackingContent');
+  tc.innerHTML='<p style="text-align:center;color:#aaa;padding:40px">Loading your orders…</p>';
+  try {
+    const q=window._query(
+      window._collection(window._db,'orders'),
+      window._where('userId','==',user.uid)
+    );
+    const snap=await window._getDocs(q);
+    if(snap.empty){ tc.innerHTML='<div class="login-gate"><p>No orders yet. Start shopping! 🌿</p><a href="#products" class="btn-primary">Shop Now</a></div>'; return; }
+    // Sort by createdAt descending in JS instead of Firestore
+    const docs=snap.docs.map(d=>d.data()).sort((a,b)=>{
+      const at=a.createdAt?.seconds||0, bt=b.createdAt?.seconds||0;
+      return bt-at;
+    });
+    tc.innerHTML=docs.map(o=>renderOrderCard(o)).join('');
+  } catch(e){
+    tc.innerHTML='<div class="login-gate"><p>Could not load orders. Please try again.</p></div>';
+    console.error(e);
+  }
+}
+
+function renderOrderCard(o){
+  const statusIdx=STATUS_STEPS.findIndex(s=>s.key===o.status);
+  const timeline=STATUS_STEPS.map((s,i)=>{
+    const done=i<statusIdx, active=i===statusIdx;
+    return `<div class="timeline-step ${done?'done':''} ${active?'active':''}">
+      <div class="timeline-dot">${done?'✓':s.icon}</div>
+      <div class="timeline-info">
+        <div class="timeline-title">${s.label}</div>
+        <div class="timeline-sub">${s.desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const date=o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}) : 'Recent';
+  const itemSummary=o.items.map(i=>`${i.emoji} ${i.name} ×${i.qty}`).join(' · ');
+  return `<div class="tracking-card">
+    <div class="tracking-order-id">Order #${o.orderId}</div>
+    <div class="tracking-name">${itemSummary}</div>
+    <div class="tracking-date">${date} · ₹${o.total} · ${o.address}</div>
+    <div class="tracking-timeline">${timeline}</div>
+  </div>`;
+}
+
+// ════════════════════════════════════════
+//  TOAST & INIT
+// ════════════════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+renderProducts();
+</script>
+</body>
+</html>
